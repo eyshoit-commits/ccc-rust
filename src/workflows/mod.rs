@@ -1,4 +1,24 @@
 /// Workflows module for handling workflow execution
+///
+/// This module provides a `Workflow` struct that allows you to define
+/// and execute a series of steps asynchronously.
+///
+/// # Example
+///
+/// ```
+/// let mut workflow = Workflow::new("example".to_string());
+/// workflow.add_step("step1".to_string());
+/// workflow.add_step("step2".to_string());
+///
+/// let result = workflow.execute().await;
+/// assert!(result.is_ok());
+/// ```
+///
+/// # Error Handling
+///
+/// The `execute` method returns a `Result<String, String>` where:
+/// - `Ok(String)` contains the execution results
+/// - `Err(String)` indicates an error (e.g., no steps to execute)
 pub struct Workflow {
     pub name: String,
     pub steps: Vec<String>,
