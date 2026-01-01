@@ -1,4 +1,4 @@
-// Library exports for CCC Rust MCP
+// Library exports for Rust Web Router
 pub mod agent;
 pub mod claude;
 pub mod workflows;

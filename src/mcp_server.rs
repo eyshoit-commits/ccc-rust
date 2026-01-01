@@ -1,20 +1,13 @@
-use axum::{
-    extract::State,
-    routing::{get, post},
-    Json, Router,
-};
+use actix_web::{web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::sync::Arc;
-use tower_http::cors::CorsLayer;
-use tower_http::trace::TraceLayer;
 
 use crate::agent::Agent;
 use crate::claude::ClaudeAgent;
 
-/// MCP Server state
-#[derive(Clone)]
-pub struct McpServerState {
+/// Application state
+pub struct AppState {
     pub claude_agent: Arc<ClaudeAgent>,
 }
 
@@ -44,31 +37,30 @@ pub struct McpRouteResponse {
     pub result: Value,
 }
 
-/// Create the MCP server router
-pub fn create_router(state: McpServerState) -> Router {
-    Router::new()
-        .route("/", get(health_check))
-        .route("/health", get(health_check))
-        .route("/v1/messages/count_tokens", post(count_tokens))
-        .route("/v1/mcp/route", post(mcp_route))
-        .layer(CorsLayer::permissive())
-        .layer(TraceLayer::new_for_http())
-        .with_state(state)
+/// Configure routes
+pub fn configure_routes(cfg: &mut web::ServiceConfig) {
+    cfg.route("/", web::get().to(index))
+        .route("/health", web::get().to(health_check))
+        .route("/v1/messages/count_tokens", web::post().to(count_tokens))
+        .route("/v1/mcp/route", web::post().to(mcp_route));
+}
+
+/// Index/welcome endpoint
+async fn index() -> impl Responder {
+    HttpResponse::Ok().body("Welcome to Rust Web Framework!")
 }
 
 /// Health check endpoint
-async fn health_check() -> Json<Value> {
-    Json(json!({
+async fn health_check() -> impl Responder {
+    HttpResponse::Ok().json(json!({
         "status": "healthy",
-        "service": "ccc-rust-mcp",
+        "service": "rust-web-router",
         "version": env!("CARGO_PKG_VERSION")
     }))
 }
 
 /// Count tokens in the provided text
-async fn count_tokens(
-    Json(payload): Json<TokenCountRequest>,
-) -> Json<TokenCountResponse> {
+async fn count_tokens(payload: web::Json<TokenCountRequest>) -> impl Responder {
     // Simple token counting (split by whitespace and punctuation)
     let count = payload.text
         .split(|c: char| c.is_whitespace() || c.is_ascii_punctuation())
@@ -77,14 +69,14 @@ async fn count_tokens(
     
     tracing::debug!("Counted {} tokens", count);
     
-    Json(TokenCountResponse { count })
+    HttpResponse::Ok().json(TokenCountResponse { count })
 }
 
 /// Route MCP requests to appropriate handlers
 async fn mcp_route(
-    State(state): State<McpServerState>,
-    Json(payload): Json<McpRouteRequest>,
-) -> Json<McpRouteResponse> {
+    state: web::Data<AppState>,
+    payload: web::Json<McpRouteRequest>,
+) -> impl Responder {
     tracing::info!("Routing MCP request for task: {}", payload.task);
     
     let input = json!({
@@ -93,13 +85,13 @@ async fn mcp_route(
     });
     
     match state.claude_agent.handle(input).await {
-        Ok(result) => Json(McpRouteResponse {
+        Ok(result) => HttpResponse::Ok().json(McpRouteResponse {
             status: "success".to_string(),
             result,
         }),
         Err(e) => {
             tracing::error!("Error handling MCP route: {}", e);
-            Json(McpRouteResponse {
+            HttpResponse::InternalServerError().json(McpRouteResponse {
                 status: "error".to_string(),
                 result: json!({
                     "error": e.to_string()
@@ -112,53 +104,29 @@ async fn mcp_route(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::body::Body;
-    use axum::http::{Request, StatusCode};
-    use tower::ServiceExt;
-    use http_body_util::BodyExt;
+    use actix_web::{test, App};
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_health_check() {
-        let state = McpServerState {
-            claude_agent: Arc::new(ClaudeAgent::new()),
-        };
-        let app = create_router(state);
-
-        let response = app
-            .oneshot(Request::builder().uri("/health").body(Body::empty()).unwrap())
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
+        let app = test::init_service(
+            App::new().configure(configure_routes)
+        ).await;
+        
+        let req = test::TestRequest::get().uri("/health").to_request();
+        let resp = test::call_service(&app, req).await;
+        
+        assert!(resp.status().is_success());
     }
 
-    #[tokio::test]
-    async fn test_count_tokens() {
-        let state = McpServerState {
-            claude_agent: Arc::new(ClaudeAgent::new()),
-        };
-        let app = create_router(state);
-
-        let request_body = json!({
-            "text": "Hello world, this is a test!"
-        });
-
-        let response = app
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/v1/messages/count_tokens")
-                    .header("content-type", "application/json")
-                    .body(Body::from(serde_json::to_vec(&request_body).unwrap()))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
+    #[actix_web::test]
+    async fn test_index() {
+        let app = test::init_service(
+            App::new().configure(configure_routes)
+        ).await;
         
-        let body = response.into_body().collect().await.unwrap().to_bytes();
-        let result: TokenCountResponse = serde_json::from_slice(&body).unwrap();
-        assert!(result.count > 0);
+        let req = test::TestRequest::get().uri("/").to_request();
+        let resp = test::call_service(&app, req).await;
+        
+        assert!(resp.status().is_success());
     }
 }

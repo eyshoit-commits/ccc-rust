@@ -84,7 +84,7 @@ impl McpAdapter {
 mod tests {
     use super::*;
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_adapter_creation() {
         let adapter = McpAdapter::new("http://localhost:3000".to_string());
         assert_eq!(adapter.base_url, "http://localhost:3000");

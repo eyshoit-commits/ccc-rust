@@ -47,7 +47,7 @@ mod tests {
     use crate::claude::ClaudeAgent;
     use serde_json::json;
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_workflow_execution() {
         let engine = WorkflowEngine::new();
         let agent = ClaudeAgent::new();

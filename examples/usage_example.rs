@@ -1,4 +1,4 @@
-//! Example of using the CCC Rust MCP library programmatically
+//! Example of using the Rust Web Router library programmatically
 //!
 //! This example demonstrates how to:
 //! 1. Create agents
@@ -7,17 +7,17 @@
 
 use serde_json::json;
 
-#[tokio::main]
+#[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     // Initialize logging
     tracing_subscriber::fmt::init();
 
-    println!("CCC Rust MCP Example");
-    println!("===================\n");
+    println!("Rust Web Router Example");
+    println!("========================\n");
 
     // Example 1: Using ClaudeAgent directly
     println!("Example 1: Direct Agent Usage");
-    use ccc_rust_mcp::{agent::Agent, claude::ClaudeAgent};
+    use rust_web_router::{agent::Agent, claude::ClaudeAgent};
     
     let claude = ClaudeAgent::new();
     let result = claude
@@ -30,7 +30,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Example 2: Using Workflow Engine
     println!("Example 2: Workflow Engine");
-    use ccc_rust_mcp::workflows::WorkflowEngine;
+    use rust_web_router::workflows::WorkflowEngine;
     
     let engine = WorkflowEngine::new();
     let next_state = engine

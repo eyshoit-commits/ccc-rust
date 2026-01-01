@@ -41,7 +41,7 @@ impl Default for ClaudeAgent {
 mod tests {
     use super::*;
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_claude_agent_handle() {
         let agent = ClaudeAgent::new();
         let input = json!({"task": "translate"});
