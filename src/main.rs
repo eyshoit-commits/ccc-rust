@@ -26,7 +26,7 @@ async fn mcp_route() -> impl Responder {
 async fn execute_workflow() -> impl Responder {
     let mut workflow = Workflow::new("example".to_string());
     workflow.add_step("process".to_string());
-    
+
     match workflow.execute().await {
         Ok(result) => HttpResponse::Ok().body(result),
         Err(err) => HttpResponse::InternalServerError().body(err),
