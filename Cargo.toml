@@ -1,0 +1,9 @@
+[package]
+name = "ccc-rust"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[dev-dependencies]
+actix-web = { version = "4", features = ["macros"] }
