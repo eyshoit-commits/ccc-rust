@@ -32,9 +32,8 @@ impl Default for WorkflowEngine {
 mod tests {
     use super::*;
 
-    // This test is using actix_web::test which is incorrect for this use case
-    // It should use tokio::test instead
-    #[actix_web::test]
+    // This test uses tokio::test for proper async runtime support
+    #[tokio::test]
     async fn test_workflow_execution() {
         let engine = WorkflowEngine::new();
         let agent = "test_agent";
